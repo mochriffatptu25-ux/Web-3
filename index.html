@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <style>
-/* CSS DARI DESIGN MEWAH KAMU */
+/* CSS DESIGN MEWAH ANDA */
 :root{
   --bg0:#060f0a;--bg1:#0b1a10;--bg2:#0f2416;
   --g1:#153320;--g2:#1d4a2e;--g3:#28693f;
@@ -22,9 +22,14 @@ header{grid-column:1/-1;background:var(--bg1);padding:14px 24px;display:flex;ali
 .card{background:var(--bg1);padding:20px;display:flex;flex-direction:column;gap:12px}
 .val{font-size:32px;font-weight:800;font-family:'Space Mono',monospace;color:var(--g6)}
 .unit{font-size:14px;color:var(--muted);font-weight:400}
-/* ... (CSS disingkat untuk efisiensi, kodingan asli kamu tetap aman) ... */
-.status-bar{height:4px;background:var(--g1);border-radius:2px;overflow:hidden;margin-top:8px}
-.bar-fill{height:100%;background:var(--g5);transition:width 1s ease}
+.label{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700}
+.act-card{background:var(--bg2);padding:15px;border-radius:12px;border:1px solid var(--g2);transition:0.3s}
+.act-card.on{border-color:var(--g5);background:rgba(82,196,122,0.05)}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;background:#555}
+.status-dot.active{background:var(--g5);box-shadow:0 0 10px var(--g5)}
+.log-item{font-family:'Space Mono';font-size:11px;padding:8px 0;border-bottom:1px solid var(--g1)}
+
+@media(max-width:1100px){.main-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -35,43 +40,76 @@ header{grid-column:1/-1;background:var(--bg1);padding:14px 24px;display:flex;ali
       <div style="background:var(--g3);padding:8px;border-radius:8px">🌱</div>
       <div>
         <div style="font-weight:800;letter-spacing:1px;font-size:16px">GREENHOUSE ROMAINE</div>
-        <div style="font-size:10px;color:var(--muted);font-family:'Space Mono'">SYSTEM ID: PROJEK-3-97A68</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'Space Mono'">DEVICE: ESP32_PROJEK3</div>
       </div>
     </div>
-    <div id="upd" style="font-family:'Space Mono';font-size:11px;color:var(--muted)">Menghubungkan...</div>
+    <div id="upd" style="font-family:'Space Mono';font-size:11px;color:var(--muted)">Menunggu Data...</div>
   </header>
 
   <aside class="card" style="border-right:1px solid var(--g2)">
-    <div class="label">Suhu Udara</div>
-    <div class="val" id="vT">--<span class="unit">°C</span></div>
-    <div class="status-bar"><div id="bT" class="bar-fill"></div></div>
+    <div>
+      <div class="label">Suhu Udara</div>
+      <div class="val" id="vT">--<span class="unit">°C</span></div>
+    </div>
+    <div>
+      <div class="label">Kelembaban Udara</div>
+      <div class="val" id="vH">--<span class="unit">%</span></div>
+    </div>
+    <div>
+      <div class="label">Kelembaban Tanah</div>
+      <div class="val" id="vS">--<span class="unit">%</span></div>
+    </div>
     
-    <div class="label" style="margin-top:20px">Kelembaban Udara</div>
-    <div class="val" id="vH">--<span class="unit">%</span></div>
-    <div class="status-bar"><div id="bH" class="bar-fill" style="background:var(--blue)"></div></div>
-
-    <div class="label" style="margin-top:20px">Kelembaban Tanah</div>
-    <div class="val" id="vS">--<span class="unit">%</span></div>
-    <div class="status-bar"><div id="bS" class="bar-fill" style="background:var(--lime)"></div></div>
+    <div style="margin-top:20px">
+      <div class="label">Status Lingkungan</div>
+      <div id="vSt" style="font-weight:700;color:var(--g6);margin-top:5px">MENGANALISA...</div>
+    </div>
   </aside>
 
-  <main style="background:var(--bg0);padding:20px; overflow-y:auto;">
-     <h2 style="color:var(--g6)">Monitoring Grafik</h2>
-     <div style="height:300px; background:var(--bg1); border-radius:12px; padding:10px; margin-bottom:20px;">
-        <canvas id="mc"></canvas>
+  <main style="padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:20px">
+     <div style="flex:1; background:var(--bg1); border-radius:16px; padding:20px; border:1px solid var(--g2)">
+        <div class="label" style="margin-bottom:15px">Grafik Suhu & Kelembaban Udara</div>
+        <div style="height:250px"><canvas id="mc"></canvas></div>
      </div>
-     <div style="height:300px; background:var(--bg1); border-radius:12px; padding:10px;">
-        <canvas id="sc"></canvas>
+     <div style="flex:1; background:var(--bg1); border-radius:16px; padding:20px; border:1px solid var(--g2)">
+        <div class="label" style="margin-bottom:15px">Grafik Kelembaban Tanah</div>
+        <div style="height:250px"><canvas id="sc"></canvas></div>
      </div>
   </main>
 
   <aside class="card" style="border-left:1px solid var(--g2)">
-     <div class="label">Status Sistem</div>
-     <div id="vSt" style="font-weight:bold; color:var(--lime)">ONLINE</div>
-     <hr style="border:0; border-top:1px solid var(--g2); width:100%">
-     <div id="lbody" style="font-size:11px; font-family:'Space Mono'; color:var(--muted)">
-        Menunggu data dari Firebase...
-     </div>
+    <div class="label">Kontrol Aktuator</div>
+    
+    <div class="act-card" id="ac-pump">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span style="font-weight:700">💧 Water Pump</span>
+        <span id="as-pump" class="unit">OFF</span>
+      </div>
+    </div>
+
+    <div class="act-card" id="ac-fan">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span style="font-weight:700">🌀 Cooling Fan</span>
+        <span id="as-fan" class="unit">OFF</span>
+      </div>
+    </div>
+
+    <div class="act-card" id="ac-nutr">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span style="font-weight:700">🧪 Nutri Pump</span>
+        <span id="as-nutr" class="unit">OFF</span>
+      </div>
+    </div>
+
+    <div class="act-card" id="ac-pelt">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span style="font-weight:700">❄️ Peltier Dispenser</span>
+        <span id="as-pelt" class="unit">OFF</span>
+      </div>
+    </div>
+
+    <div class="label" style="margin-top:20px">Log Aktivitas</div>
+    <div id="lbody" style="height:200px; overflow-y:auto; padding-right:5px"></div>
   </aside>
 </div>
 
@@ -79,7 +117,7 @@ header{grid-column:1/-1;background:var(--bg1);padding:14px 24px;display:flex;ali
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
 <script>
-// KONFIGURASI FIREBASE KAMU
+// CONFIG FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyDq4cyOjlMICrkoHus1ZW5nTH-KEobSEs0",
     authDomain: "projek-3-97a68.firebaseapp.com",
@@ -88,60 +126,120 @@ const firebaseConfig = {
     appId: "1:981835425647:web:d06b87fa4b9c8a6bf36a9a"
 };
 
-// Inisialisasi
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Inisialisasi Chart (Agar tidak error saat update)
-const ctxMain = document.getElementById('mc').getContext('2d');
-const chartMain = new Chart(ctxMain, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Suhu (°C)', data: [], borderColor: '#ffad3b', tension: 0.4 }] },
-    options: { responsive: true, maintainAspectRatio: false }
-});
-
-const ctxSoil = document.getElementById('sc').getContext('2d');
-const chartSoil = new Chart(ctxSoil, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Tanah (%)', data: [], borderColor: '#52c47a', tension: 0.4 }] },
-    options: { responsive: true, maintainAspectRatio: false }
-});
-
-// Fungsi Update Tampilan
-function updateUI(s, h, t) {
-    const waktu = new Date().toLocaleTimeString();
-    
-    // Update Angka
-    document.getElementById('vT').innerHTML = `${s}<span class="unit">°C</span>`;
-    document.getElementById('vH').innerHTML = `${h}<span class="unit">%</span>`;
-    document.getElementById('vS').innerHTML = `${t}<span class="unit">%</span>`;
-    
-    // Update Progress Bar
-    document.getElementById('bT').style.width = s + "%";
-    document.getElementById('bH').style.width = h + "%";
-    document.getElementById('bS').style.width = t + "%";
-    
-    document.getElementById('upd').textContent = "Update terakhir: " + waktu;
-
-    // Update Grafik
-    if(chartMain.data.labels.length > 10) {
-        chartMain.data.labels.shift();
-        chartMain.data.datasets[0].data.shift();
+// INISIALISASI GRAFIK
+const commonOpt = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#5d9471', font: { family: 'Space Mono' } } } },
+    scales: { 
+        x: { ticks: { color: '#2a4d36' }, grid: { color: 'rgba(82,196,122,0.05)' } },
+        y: { ticks: { color: '#2a4d36' }, grid: { color: 'rgba(82,196,122,0.05)' } }
     }
-    chartMain.data.labels.push(waktu);
-    chartMain.data.datasets[0].data.push(s);
-    chartMain.update();
+};
+
+const mc = new Chart(document.getElementById('mc'), {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [
+            { label: 'Suhu (°C)', data: [], borderColor: '#ffad3b', tension: 0.4, fill: false },
+            { label: 'Hum Udara (%)', data: [], borderColor: '#43d9f5', tension: 0.4, fill: false }
+        ]
+    },
+    options: commonOpt
+});
+
+const sc = new Chart(document.getElementById('sc'), {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{ label: 'Tanah (%)', data: [], borderColor: '#7de8a0', tension: 0.4, fill: true, backgroundColor: 'rgba(125,232,160,0.1)' }]
+    },
+    options: commonOpt
+});
+
+// FUNGSI UPDATE LOG
+function addLog(msg) {
+    const time = new Date().toLocaleTimeString();
+    const lbody = document.getElementById('lbody');
+    lbody.innerHTML = `<div class="log-item"><span style="color:var(--g6)">[${time}]</span> ${msg}</div>` + lbody.innerHTML;
 }
 
-// Ambil Data Real-time
+// LOGIKA UTAMA
+function updateDashboard(temp, hum, soil) {
+    const now = new Date().toLocaleTimeString();
+
+    // 1. Update Angka
+    document.getElementById('vT').innerHTML = `${temp}<span class="unit">°C</span>`;
+    document.getElementById('vH').innerHTML = `${hum}<span class="unit">%</span>`;
+    document.getElementById('vS').innerHTML = `${soil}<span class="unit">%</span>`;
+    document.getElementById('upd').textContent = "Terakhir diperbarui: " + now;
+
+    // 2. Analisa Status
+    let status = "✓ NORMAL";
+    if (soil < 40) status = "⚠️ TANAH KERING";
+    if (temp > 30) status = "🔥 SUHU PANAS";
+    document.getElementById('vSt').textContent = status;
+
+    // 3. Kontrol & Monitoring Aktuator
+    // Water Pump (Menyala jika Tanah < 40)
+    const pumpOn = soil < 40;
+    updateActuator('pump', pumpOn, "Water Pump");
+
+    // Fan & Peltier (Menyala jika Suhu > 28)
+    const coolOn = temp > 28;
+    updateActuator('fan', coolOn, "Cooling Fan");
+    updateActuator('pelt', coolOn, "Peltier");
+
+    // Peristaltik (Contoh: menyala jika kelembaban udara sangat rendah < 50)
+    const nutrOn = hum < 50;
+    updateActuator('nutr', nutrOn, "Nutri Pump");
+
+    // 4. Update Grafik
+    if (mc.data.labels.length > 15) {
+        mc.data.labels.shift(); mc.data.datasets[0].data.shift(); mc.data.datasets[1].data.shift();
+        sc.data.labels.shift(); sc.data.datasets[0].data.shift();
+    }
+    mc.data.labels.push(now);
+    mc.data.datasets[0].data.push(temp);
+    mc.data.datasets[1].data.push(hum);
+    sc.data.labels.push(now);
+    sc.data.datasets[0].data.push(soil);
+    mc.update(); sc.update();
+}
+
+function updateActuator(id, isOn, name) {
+    const card = document.getElementById('ac-' + id);
+    const status = document.getElementById('as-' + id);
+    const prevStatus = status.textContent;
+    
+    if (isOn) {
+        card.classList.add('on');
+        status.textContent = "ACTIVE";
+        status.style.color = "var(--g6)";
+        if(prevStatus === "OFF") addLog(`${name} MENYALA 🟢`);
+    } else {
+        card.classList.remove('on');
+        status.textContent = "OFF";
+        status.style.color = "var(--muted)";
+        if(prevStatus === "ACTIVE") addLog(`${name} MATI ⭕`);
+    }
+}
+
+// AMBIL DATA DARI FIREBASE
 db.ref('Sensor').on('value', (snapshot) => {
     const data = snapshot.val();
-    if(data) {
-        updateUI(data.Suhu || 0, data.Kelembaban || 0, data.Tanah || 0);
-        document.getElementById('lbody').innerHTML = "Data berhasil diterima: " + JSON.stringify(data);
+    if (data) {
+        updateDashboard(
+            data.Suhu || 0, 
+            data.Kelembaban || 0, 
+            data.Tanah || 0
+        );
     }
 }, (error) => {
-    document.getElementById('lbody').innerHTML = "Error: " + error.message;
+    addLog("Kesalahan Koneksi: " + error.message);
 });
 </script>
 </body>
