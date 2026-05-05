@@ -1,173 +1,277 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Greenhouse Selada Romaine</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary-green: #2ecc71;
-            --dark-green: #27ae60;
-            --bg-color: #f0f4f7;
-            --text-color: #2c3e50;
-        }
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
+<script>
+// ─── STATE ───────────────────────────────────────────
+const MAX=24;
+const labels=[],dT=[],dH=[],dS=[];
+const hist=[], logs=[];
+let gMode='auto', nutriTick=0;
+const act={
+  pump:{on:false,mode:'auto'},
+  nutr:{on:false,mode:'auto'},
+  fan1:{on:false,mode:'auto'},
+  fan2:{on:false,mode:'auto'},
+  pelt:{on:false,mode:'auto'},
+};
 
-        header {
-            background-color: var(--primary-green);
-            color: white;
-            width: 100%;
-            padding: 20px 0;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+// seed (Data awal agar grafik tidak kosong)
+(()=>{
+  const now=Date.now();
+  for(let i=MAX;i>=1;i--){
+    const t=new Date(now-i*5000);
+    labels.push(t.toLocaleTimeString('id-ID'));
+    dT.push(+(23+Math.random()*10).toFixed(1));
+    dH.push(+(50+Math.random()*32).toFixed(1));
+    dS.push(+(38+Math.random()*48).toFixed(0));
+  }
+})();
 
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            padding: 40px 20px;
-            max-width: 1000px;
-        }
+// ─── CHARTS ──────────────────────────────────────────
+const baseOpt = {
+  responsive:true,maintainAspectRatio:false,animation:{duration:500},
+  plugins:{
+    legend:{labels:{color:'#5d9471',font:{family:"'Space Mono',monospace",size:9},boxWidth:10,padding:12}},
+    tooltip:{backgroundColor:'rgba(6,15,10,.93)',borderColor:'rgba(82,196,122,.25)',borderWidth:1,
+      titleColor:'#b0ffcc',bodyColor:'#5d9471',padding:10,
+      titleFont:{family:"'Space Mono',monospace",size:10},bodyFont:{family:"'Space Mono',monospace",size:10}}
+  },
+  scales:{
+    x:{ticks:{color:'#2a4d36',font:{family:"'Space Mono',monospace",size:8},maxTicksLimit:7},grid:{color:'rgba(82,196,122,.04)'}},
+    y:{ticks:{color:'#2a4d36',font:{family:"'Space Mono',monospace",size:9}},grid:{color:'rgba(82,196,122,.04)'}}
+  }
+};
 
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            width: 250px;
-            text-align: center;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-            transition: transform 0.3s ease;
-        }
+const mainDs={
+  temp:[{label:'Suhu (°C)',data:dT,borderColor:'#ffad3b',backgroundColor:'rgba(255,173,59,.08)',tension:.4,fill:true,pointRadius:0,borderWidth:2}],
+  hum: [{label:'Kelembaban Udara (%)',data:dH,borderColor:'#43d9f5',backgroundColor:'rgba(67,217,245,.08)',tension:.4,fill:true,pointRadius:0,borderWidth:2}],
+  all: [
+    {label:'Suhu',data:dT,borderColor:'#ffad3b',backgroundColor:'transparent',tension:.4,fill:false,pointRadius:0,borderWidth:2},
+    {label:'Hum', data:dH,borderColor:'#43d9f5',backgroundColor:'transparent',tension:.4,fill:false,pointRadius:0,borderWidth:2},
+  ]
+};
 
-        .card:hover {
-            transform: translateY(-5px);
-        }
+const mc=new Chart(document.getElementById('mc').getContext('2d'),{type:'line',data:{labels,datasets:mainDs.temp},options:JSON.parse(JSON.stringify(baseOpt))});
 
-        .icon {
-            font-size: 3rem;
-            margin-bottom: 10px;
-        }
+const soilOpt=JSON.parse(JSON.stringify(baseOpt));
+soilOpt.scales.y={...soilOpt.scales.y,min:0,max:100};
+const schart=new Chart(document.getElementById('sc').getContext('2d'),{
+  type:'line',
+  data:{labels,datasets:[
+    {label:'Kelembaban Tanah (%)',data:dS,borderColor:'#52c47a',backgroundColor:'rgba(82,196,122,.1)',tension:.4,fill:true,pointRadius:0,borderWidth:2.5},
+    {label:'Batas Bawah (40%)',data:Array(MAX).fill(40),borderColor:'rgba(255,82,82,.55)',backgroundColor:'transparent',borderDash:[6,3],pointRadius:0,borderWidth:1.5}
+  ]},
+  options:soilOpt
+});
 
-        .value {
-            font-size: 2.5rem;
-            font-weight: 600;
-            margin: 10px 0;
-            color: var(--dark-green);
-        }
+function swCh(m,btn){
+  document.querySelectorAll('.ctb').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  mc.data.datasets=mainDs[m];mc.update();
+}
 
-        .label {
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #7f8c8d;
-        }
+// ─── GLOBAL MODE ─────────────────────────────────────
+function setGlobal(m){
+  gMode=m;
+  document.getElementById('gAbtn').classList.toggle('act',m==='auto');
+  document.getElementById('gMbtn').classList.toggle('act',m==='manual');
+  document.getElementById('ainfo').textContent=
+    m==='auto'?'⚙ MODE AUTO · Aktuator dikendalikan otomatis berdasarkan kondisi sensor':'✋ MODE MANUAL · Semua aktuator dikendalikan secara manual';
+  Object.keys(act).forEach(id=>{
+    act[id].mode=m;
+    const mb=document.getElementById('mb-'+id);
+    mb.className='mbadge '+(m==='auto'?'mba':'mbm');
+    mb.textContent=m==='auto'?'⚙ AUTO':'✋ MANUAL';
+  });
+  addLog('info',`Mode global → ${m.toUpperCase()}`,ts());
+}
 
-        footer {
-            margin-top: auto;
-            padding: 20px;
-            color: #bdc3c7;
-            font-size: 0.9rem;
-        }
+// ─── TOGGLE ──────────────────────────────────────────
+function togAct(id,val){
+  if(act[id].mode==='auto') addLog('warn',`Override manual: ${id.toUpperCase()} ${val?'ON':'OFF'}`,ts());
+  setAct(id,val,false);
+}
 
-        /* Status Online/Offline */
-        .status-dot {
-            height: 10px;
-            width: 10px;
-            background-color: #bbb;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-        }
-        .online { background-color: #2ecc71; }
-    </style>
-</head>
-<body>
+function setAct(id,val,fromAuto){
+  const prev=act[id].on; act[id].on=val;
+  const card=document.getElementById('ac-'+id);
+  const sw=document.getElementById('sw-'+id);
+  document.getElementById('lb-'+id).textContent=val?'ON':'OFF';
+  document.getElementById('as-'+id).textContent=val?'AKTIF':'STANDBY';
+  sw.checked=val;
+  val?card.classList.add('on'):card.classList.remove('on');
+  if(prev!==val){
+    const who=fromAuto?'AUTO':'MANUAL';
+    const nm={pump:'Water Pump',nutr:'Peristaltik Pump',fan1:'Fan 1',fan2:'Fan 2',pelt:'Peltier Cooler'};
+    addLog(val?'on':'off',`[${who}] ${nm[id]} → ${val?'🟢 ON':'⭕ OFF'}`,ts());
+  }
+}
 
-    <header>
-        <h1>🌱 My Romaine Greenhouse</h1>
-        <p><span class="status-dot online"></span> Sistem Terhubung Real-time</p>
-    </header>
+// ─── AUTO LOGIC ──────────────────────────────────────
+function runAuto(temp,hum,soil){
+  if(gMode!=='auto') return;
+  // Water pump ON if soil < 40%
+  setAct('pump',soil<40,true);
+  // Cooling: Fan1 + Fan2 + Peltier ON if temp > 25°C
+  const cool=temp>25;
+  setAct('fan1',cool,true);
+  setAct('fan2',cool,true);
+  setAct('pelt',cool,true);
+  // Nutrisi: pulse every ~30s
+  nutriTick++;
+  if(nutriTick%6===0){
+    setAct('nutr',true,true);
+    setTimeout(()=>setAct('nutr',false,true),3000);
+  }
+}
 
-    <div class="container">
-        <div class="card">
-            <div class="icon">🌡️</div>
-            <div class="label">Suhu Udara</div>
-            <div class="value" id="suhu">--</div>
-            <div class="label">Celcius</div>
-        </div>
+// ─── SUMMARY ─────────────────────────────────────────
+const actNames={pump:'💧 Water Pump',nutr:'🧪 Nutri Pump',fan1:'🌀 Fan 1',fan2:'🌀 Fan 2',pelt:'❄️ Peltier'};
+function renderSummary(){
+  document.getElementById('sumlist').innerHTML=
+    Object.entries(act).map(([id,a])=>`
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:.73rem;color:var(--muted)">${actNames[id]}</span>
+        <span style="font-size:.68rem;font-family:'Space Mono',monospace;padding:2px 9px;border-radius:99px;
+          background:${a.on?'rgba(82,196,122,.12)':'rgba(255,255,255,.05)'};
+          color:${a.on?'var(--g6)':'var(--dim)'}">${a.on?'ON':'OFF'}</span>
+      </div>`).join('');
+  const onN=Object.values(act).filter(a=>a.on).length;
+  document.getElementById('hsc').textContent=Math.max(60,100-onN*5);
+}
 
-        <div class="card">
-            <div class="icon">💧</div>
-            <div class="label">Kelembaban Udara</div>
-            <div class="value" id="kelembaban">--</div>
-            <div class="label">Persen (%)</div>
-        </div>
+// ─── LOG ─────────────────────────────────────────────
+const lico={on:'🟢',off:'⭕',warn:'⚠️',info:'📡',alert:'🚨'};
+function addLog(type,msg,time){
+  logs.unshift({type,msg,time});
+  if(logs.length>40)logs.pop();
+  document.getElementById('lbody').innerHTML=
+    logs.slice(0,18).map((l,i)=>`
+      <div class="logi" style="animation-delay:${i*.025}s">
+        <div class="liico">${lico[l.type]||'📌'}</div>
+        <div><div class="limsg">${l.msg}</div><div class="litm">${l.time}</div></div>
+      </div>`).join('');
+  document.getElementById('lcnt').textContent=`${logs.length} logs`;
+}
 
-        <div class="card">
-            <div class="icon">🪴</div>
-            <div class="label">Kelembaban Tanah</div>
-            <div class="value" id="tanah">--</div>
-            <div class="label">Persen (%)</div>
-        </div>
-    </div>
+// ─── HISTORY ─────────────────────────────────────────
+function sysStatus(t,h,s){
+  if(s<20) return 'KRITIS';
+  if(t>35||s<40) return 'WASPADA';
+  if(t>25) return 'HANGAT';
+  return 'NORMAL';
+}
+function sBadge(s){
+  if(s==='NORMAL') return`<span class="badge bn">✓ NORMAL</span>`;
+  if(s==='HANGAT') return`<span class="badge bw">🌡 HANGAT</span>`;
+  if(s==='WASPADA')return`<span class="badge bw">⚠ WASPADA</span>`;
+  return`<span class="badge bd">🚨 KRITIS</span>`;
+}
+function renderHist(){
+  document.getElementById('hbody').innerHTML=
+    [...hist].reverse().slice(0,40).map(r=>`
+      <tr>
+        <td>${r.time}</td>
+        <td style="color:var(--amber)">${r.temp}°C</td>
+        <td style="color:var(--blue)">${r.hum}%</td>
+        <td style="color:var(--g6)">${r.soil}%</td>
+        <td style="color:${r.pump?'var(--blue)':'var(--dim)'}">${r.pump?'ON':'—'}</td>
+        <td style="color:${r.fan?'var(--blue)':'var(--dim)'}">${r.fan?'ON':'—'}</td>
+        <td style="color:${r.pelt?'var(--blue)':'var(--dim)'}">${r.pelt?'ON':'—'}</td>
+        <td>${sBadge(r.status)}</td>
+      </tr>`).join('');
+}
 
-    <footer>
-        &copy; 2026 Proyek Selada Romaine IoT - Connected to GitHub & Firebase
-    </footer>
+// ─── EXPORT ──────────────────────────────────────────
+function expCSV(){
+  const rows=[['Waktu','Suhu','Hum Udara','Tanah','Water Pump','Fan','Peltier','Status']];
+  hist.forEach(r=>rows.push([r.time,r.temp,r.hum,r.soil,r.pump?'ON':'OFF',r.fan?'ON':'OFF',r.pelt?'ON':'OFF',r.status]));
+  const b=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});
+  const u=URL.createObjectURL(b);const a=document.createElement('a');
+  a.href=u;a.download=`greenhouse_${Date.now()}.csv`;a.click();URL.revokeObjectURL(u);
+}
 
-    <script type="module">
-        // Import Firebase SDK
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+function ts(){return new Date().toLocaleTimeString('id-ID')}
 
-        // Konfigurasi Firebase Anda
-        const firebaseConfig = {
-            apiKey: "AIzaSyDq4cyOjlMICrkoHus1ZW5nTH-KEobSEs0",
-            authDomain: "projek-3-97a68.firebaseapp.com",
-            databaseURL: "https://projek-3-97a68-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "projek-3-97a68",
-            storageBucket: "projek-3-97a68.firebasestorage.app",
-            messagingSenderId: "981835425647",
-            appId: "1:981835425647:web:d06b87fa4b9c8a6bf36a9a",
-            measurementId: "G-1J0MFRME5H"
-        };
+// ─── MAIN UPDATE (Menerima Data Asli Firebase) ───────
+function update(realTemp, realHum, realSoil){
+  const tStr=ts();
+  const pT=dT[dT.length-1];
+  
+  // Memasukkan data asli ke variabel
+  const temp = realTemp !== undefined ? parseFloat(realTemp) : 0;
+  const hum = realHum !== undefined ? parseFloat(realHum) : 0;
+  const soil = realSoil !== undefined ? parseFloat(realSoil) : 0;
+  const stat=sysStatus(temp,hum,soil);
 
-        // Inisialisasi Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+  // Chart data
+  labels.push(tStr);dT.push(temp);dH.push(hum);dS.push(soil);
+  if(labels.length>MAX){labels.shift();dT.shift();dH.shift();dS.shift();}
+  schart.data.datasets[1].data=Array(labels.length).fill(40);
+  mc.update();schart.update();
 
-        // Referensi ke node 'Sensor' di Firebase
-        const sensorRef = ref(db, 'Sensor');
+  // Sensor cards
+  document.getElementById('vT').innerHTML=`${temp}<span class="cu"> °C</span>`;
+  document.getElementById('vH').innerHTML=`${hum}<span class="cu"> %</span>`;
+  document.getElementById('vS').innerHTML=`${soil}<span class="cu"> %</span>`;
+  const sE={NORMAL:'🟢',HANGAT:'🟡',WASPADA:'🟠',KRITIS:'🔴'}[stat]||'🟢';
+  document.getElementById('vSt').textContent=`${sE} ${stat}`;
+  document.getElementById('bT').style.width=`${Math.min(100,((temp-15)/30)*100)}%`;
+  document.getElementById('bH').style.width=`${hum}%`;
+  document.getElementById('bS').style.width=`${soil}%`;
+  const dTv=(temp-pT).toFixed(1);
+  document.getElementById('trT').innerHTML=`<span style="color:${dTv>0?'var(--amber)':'var(--blue)'}">${dTv>0?'↗':'↘'} ${Math.abs(dTv)}°C</span> dari sebelumnya`;
+  document.getElementById('trS').innerHTML=soil<40?`<span style="color:var(--red)">⚠ Perlu disiram!</span>`:`<span style="color:var(--g6)">✓ Tidak perlu disiram</span>`;
 
-        // Mendengarkan perubahan data secara real-time
-        onValue(sensorRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                // Update tampilan web dengan data dari Firebase
-                document.getElementById('suhu').innerText = data.Suhu !== undefined ? data.Suhu : "--";
-                document.getElementById('kelembaban').innerText = data.Kelembaban !== undefined ? data.Kelembaban : "--";
-                document.getElementById('tanah').innerText = data.Tanah !== undefined ? data.Tanah : "--";
-                
-                console.log("Data diterima:", data);
-            } else {
-                console.log("Data tidak ditemukan di folder 'Sensor'");
-            }
-        }, (error) => {
-            console.error("Gagal membaca data:", error);
-        });
-    </script>
+  // Actuator condition bars
+  const tPct=Math.round(Math.min(100,((temp-15)/30)*100));
+  ['fan1','fan2','pelt'].forEach(id=>{
+    document.getElementById('cv-'+id).textContent=`${temp}°C`;
+    document.getElementById('cf-'+id).style.width=tPct+'%';
+  });
+  document.getElementById('cv-pump').textContent=`${soil}%`;
+  document.getElementById('cf-pump').style.width=Math.min(100,soil)+'%';
+
+  // Auto
+  runAuto(temp,hum,soil);
+
+  // Conditional logs
+  if(soil<40&&!act.pump.on) addLog('alert','💧 Tanah kering! Water pump aktif.',tStr);
+  if(temp>35) addLog('alert','🔥 Suhu >35°C! Sistem pendingin aktif.',tStr);
+
+  // History
+  hist.push({time:tStr,temp,hum,soil:+soil,pump:act.pump.on,fan:act.fan1.on||act.fan2.on,pelt:act.pelt.on,status:stat});
+  if(hist.length>80)hist.shift();
+  renderHist();
+  renderSummary();
+  document.getElementById('upd').textContent=tStr;
+}
+
+// ─── INIT FIREBASE ASLI ──────────────────────────────
+const firebaseConfig = {
+    apiKey: "AIzaSyDq4cyOjlMICrkoHus1ZW5nTH-KEobSEs0",
+    authDomain: "projek-3-97a68.firebaseapp.com",
+    databaseURL: "https://projek-3-97a68-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "projek-3-97a68",
+    storageBucket: "projek-3-97a68.firebasestorage.app",
+    messagingSenderId: "981835425647",
+    appId: "1:981835425647:web:d06b87fa4b9c8a6bf36a9a"
+};
+
+// Inisialisasi
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+addLog('info','🌿 Sistem terhubung ke UI. Menunggu Data...',ts());
+renderSummary();renderHist();
+
+// Mengambil Data dari Firebase Real-time
+db.ref('Sensor').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if(data) {
+        update(data.Suhu, data.Kelembaban, data.Tanah);
+    }
+});
+</script>
 </body>
 </html>
