@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Mini Greenhouse · Smart Control</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<!-- Firebase SDK (compat v10.8.1) — via jsDelivr -->
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.8.1/firebase-app-compat.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.8.1/firebase-database-compat.min.js"></script>
+<!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
@@ -58,6 +60,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:26p
 .sbf{height:100%;border-radius:99px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
 .strend{font-size:.72rem;color:var(--muted);margin-top:6px}
 .ct2{color:var(--amber)}.ct2 .sbf{background:linear-gradient(90deg,#f07b1d,var(--amber))}
+.csd .sval{font-size:1.05rem;line-height:1.35;color:var(--g6)} .csd .sbf{background:linear-gradient(90deg,#1a7a3e,var(--g5))}
+.csd.sd-error .sval{color:var(--red)}   .csd.sd-error .sbf{background:linear-gradient(90deg,#7a1a1a,var(--red))}
+.csd.sd-warn  .sval{color:var(--amber)} .csd.sd-warn  .sbf{background:linear-gradient(90deg,#7a4a1a,var(--amber))}
 .ch2{color:var(--blue)} .ch2 .sbf{background:linear-gradient(90deg,#1db8d6,var(--blue))}
 .cs2{color:var(--g6)}   .cs2 .sbf{background:linear-gradient(90deg,var(--g3),var(--g6))}
 .cst{color:var(--lime)}  .cst .sval{font-size:1.1rem;line-height:1.3} .cst .sbf{background:linear-gradient(90deg,var(--lime),#eeff90)}
@@ -260,6 +265,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
 <body>
 <div class="wrap">
 
+<!-- HEADER -->
 <header class="fu">
   <div class="brand">
     <div class="bico">🌿</div>
@@ -277,38 +283,49 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
   </div>
 </header>
 
-<div class="sr">
+<!-- SENSOR CARDS -->
+<div class="sr" style="grid-template-columns:repeat(5,1fr)">
   <div class="sc2 ct2 fu d1">
     <div class="bgico">🌡️</div>
     <div class="slbl">Suhu Udara</div>
-    <div class="sval" id="vT">28.5<span class="cu"> °C</span></div>
-    <div class="sbar"><div class="sbf" id="bT" style="width:57%"></div></div>
-    <div class="strend" id="trT">↗ +0.2°C dari sebelumnya</div>
+    <div class="sval" id="vT">—<span class="cu"> °C</span></div>
+    <div class="sbar"><div class="sbf" id="bT" style="width:0%"></div></div>
+    <div class="strend" id="trT">— Menunggu data</div>
   </div>
   <div class="sc2 ch2 fu d2">
     <div class="bgico">💧</div>
     <div class="slbl">Kelembaban Udara</div>
-    <div class="sval" id="vH">65.2<span class="cu"> %</span></div>
-    <div class="sbar"><div class="sbf" id="bH" style="width:65%"></div></div>
-    <div class="strend" id="trH">✓ Optimal 40–80%</div>
+    <div class="sval" id="vH">—<span class="cu"> %</span></div>
+    <div class="sbar"><div class="sbf" id="bH" style="width:0%"></div></div>
+    <div class="strend" id="trH">Optimal 40–80%</div>
   </div>
   <div class="sc2 cs2 fu d3">
     <div class="bgico">🌱</div>
     <div class="slbl">Kelembaban Tanah</div>
-    <div class="sval" id="vS">72<span class="cu"> %</span></div>
-    <div class="sbar"><div class="sbf" id="bS" style="width:72%"></div></div>
-    <div class="strend" id="trS">✓ Tidak perlu disiram</div>
+    <div class="sval" id="vS">—<span class="cu"> %</span></div>
+    <div class="sbar"><div class="sbf" id="bS" style="width:0%"></div></div>
+    <div class="strend" id="trS">— Menunggu data</div>
   </div>
   <div class="sc2 cst fu d4">
     <div class="bgico">📡</div>
     <div class="slbl">Status Sistem</div>
-    <div class="sval" id="vSt">🟢 NORMAL</div>
+    <div class="sval" id="vSt">⏳ Menunggu…</div>
     <div class="sbar"><div class="sbf" id="bSt" style="width:100%"></div></div>
     <div class="strend">Firebase: <span style="color:var(--g6)">Connected</span></div>
   </div>
+  <!-- SD CARD -->
+  <div class="sc2 csd fu d5" id="sdCard">
+    <div class="bgico">💾</div>
+    <div class="slbl">Status SD Card</div>
+    <div class="sval" id="vSD">⏳ Menunggu…</div>
+    <div class="sbar"><div class="sbf" id="bSD" style="width:0%"></div></div>
+    <div class="strend" id="trSD">Menunggu data dari Firebase</div>
+  </div>
 </div>
 
+<!-- CHARTS ROW -->
 <div class="chrow fu d3">
+  <!-- Main chart -->
   <div class="panel">
     <div class="ph">
       <div class="pt"><i></i>Grafik Sensor Realtime</div>
@@ -320,6 +337,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
     </div>
     <div class="cbox"><canvas id="mc"></canvas></div>
   </div>
+  <!-- Soil chart -->
   <div class="panel">
     <div class="ph">
       <div class="pt"><i></i>Grafik Kelembaban Tanah</div>
@@ -332,6 +350,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
   </div>
 </div>
 
+<!-- ACTUATOR PANEL -->
 <div class="asec fu d4">
   <div class="asec-hd">
     <h2>Status Aktuator</h2>
@@ -339,6 +358,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
   </div>
   <div class="agrid">
 
+    <!-- WATER PUMP -->
     <div class="acard warn" id="ac-pump">
       <div class="atop">
         <div>
@@ -359,6 +379,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
       </div>
     </div>
 
+    <!-- PERISTALTIC PUMP -->
     <div class="acard nutr" id="ac-nutr">
       <div class="atop">
         <div>
@@ -379,6 +400,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
       </div>
     </div>
 
+    <!-- FAN -->
     <div class="acard cool" id="ac-fan1">
       <div class="atop">
         <div>
@@ -401,6 +423,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
 
 
 
+    <!-- PELTIER -->
     <div class="acard cool" id="ac-pelt">
       <div class="atop">
         <div>
@@ -421,6 +444,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
       </div>
     </div>
 
+    <!-- SUMMARY -->
     <div class="panel sumpanel">
       <div>
         <div class="pt" style="margin-bottom:14px"><i></i>Ringkasan Sistem</div>
@@ -433,7 +457,11 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
       </div>
     </div>
 
-  </div></div><div class="sheets-section fu d5">
+  </div><!-- /agrid -->
+</div><!-- /asec -->
+
+<!-- GOOGLE SHEETS LOGGING PANEL -->
+<div class="sheets-section fu d5">
   <div class="sheets-panel">
     <div class="ph">
       <div class="pt"><i></i>📊 Data Logging · Google Sheets</div>
@@ -443,6 +471,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
     </div>
     <div class="sheets-body">
 
+      <!-- Auto log status bar (selalu aktif) -->
       <div class="autolog-row">
         <div class="autolog-info">
           <div class="autolog-title">🔄 Auto Log Aktif</div>
@@ -453,11 +482,13 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
         </div>
       </div>
 
+      <!-- Status strip -->
       <div class="sheets-status" id="sheetsStatus">
         <span class="sstat-ico">⏳</span>
         <span id="sheetsStatusTxt">Menunggu data sensor dari Firebase…</span>
       </div>
 
+      <!-- Stats row -->
       <div class="log-stats">
         <div class="lstat-item">
           <div class="lstat-num" id="logTotal">0</div>
@@ -473,6 +504,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
         </div>
       </div>
 
+      <!-- Log preview list -->
       <div>
         <div style="font-size:.68rem;color:var(--dim);font-family:'Space Mono',monospace;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Riwayat Pengiriman</div>
         <div class="sheets-log-wrap" id="sheetsLogList">
@@ -484,6 +516,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
   </div>
 </div>
 
+<!-- BOTTOM ROW -->
 <div class="botrow fu d5">
   <div class="panel">
     <div class="ph">
@@ -856,6 +889,44 @@ function update(temp, hum, soil){
   logToSheets();
 }
 
+// ─── SD CARD STATUS ──────────────────────────────────
+// Handle semua format: boolean, 0/1, string apapun dari ESP32
+function updateSDCard(raw){
+  const card  = document.getElementById('sdCard');
+  const vSD   = document.getElementById('vSD');
+  const bSD   = document.getElementById('bSD');
+  const trSD  = document.getElementById('trSD');
+
+  // Normalisasi nilai ke string lowercase
+  const val = String(raw).toLowerCase().trim();
+
+  // Tentukan state: aktif / error / tidak ada
+  const isOk = ['1','true','ok','aktif','active','ready','mounted','yes'].includes(val);
+  const isErr= ['0','false','error','gagal','fail','failed','not mounted','no','unmounted','missing'].includes(val);
+
+  // Reset class
+  card.classList.remove('sd-error','sd-warn');
+
+  if(isOk){
+    vSD.textContent  = '💾 AKTIF';
+    bSD.style.width  = '100%';
+    trSD.innerHTML   = `<span style="color:var(--g6)">✓ SD Card terpasang & siap</span>`;
+    addLog('info','💾 SD Card: AKTIF',ts());
+  } else if(isErr){
+    card.classList.add('sd-error');
+    vSD.textContent  = '🚨 ERROR';
+    bSD.style.width  = '100%';
+    trSD.innerHTML   = `<span style="color:var(--red)">✗ SD Card gagal / tidak terbaca</span>`;
+    addLog('alert','💾 SD Card: ERROR — periksa modul SD Card!',ts());
+  } else {
+    // Format tidak dikenal — tampilkan apa adanya
+    card.classList.add('sd-warn');
+    vSD.textContent  = `⚠ ${String(raw).toUpperCase()}`;
+    bSD.style.width  = '60%';
+    trSD.innerHTML   = `<span style="color:var(--amber)">Status: ${raw}</span>`;
+  }
+}
+
 // ─── INIT & FIREBASE LISTENER ────────────────────────
 addLog('info','🌿 Sistem monitoring aktif. ESP32 online.',ts());
 addLog('info','📡 Menghubungkan ke Firebase Realtime DB…',ts());
@@ -868,33 +939,48 @@ document.getElementById('vH').innerHTML=`—<span class="cu"> %</span>`;
 document.getElementById('vS').innerHTML=`—<span class="cu"> %</span>`;
 document.getElementById('vSt').textContent='⏳ Menunggu…';
 
-// ✅ DIUBAH: 'Sensor' → 'Monitoring'
+// Listener realtime — terpanggil setiap ada perubahan data di Firebase
 db.ref('Monitoring').on('value',
   function(snapshot){
     const data = snapshot.val();
 
+    // Guard: pastikan data valid sebelum diproses
     if(!data){
-      addLog('warn','⚠ Firebase: node "Monitoring" kosong atau belum ada data.',ts());
+      addLog('warn','⚠ Firebase: node "Sensor" kosong atau belum ada data.',ts());
       return;
     }
 
+    // Ambil nilai, pastikan angka (parseFloat untuk jaga-jaga kalau tersimpan sebagai string)
     const temp = parseFloat(data.Suhu);
     const hum  = parseFloat(data.Kelembaban);
     const soil = parseFloat(data.Tanah);
+
+    // SD Card — baca jika ada, key bisa SDCard / SD_Card / sdcard / SD
+    const sdRaw = data.SDCard ?? data.SD_Card ?? data.sdcard ?? data.SD ?? data.sd ?? null;
+    if(sdRaw !== null && sdRaw !== undefined){
+      updateSDCard(sdRaw);
+    } else {
+      // Node SD Card belum ada di Firebase — tampilkan info
+      document.getElementById('vSD').textContent  = '— Tidak Ada';
+      document.getElementById('trSD').innerHTML   = `<span style="color:var(--dim)">Key "SDCard" belum ditemukan di Firebase</span>`;
+    }
 
     if(isNaN(temp) || isNaN(hum) || isNaN(soil)){
       addLog('warn','⚠ Data tidak valid diterima dari Firebase.',ts());
       return;
     }
 
+    // Log koneksi berhasil hanya sekali (saat data pertama masuk)
     if(prevTemp === null){
       addLog('info','✅ Firebase terhubung. Data sensor diterima.',ts());
       patchSheetsStatus(temp, hum, soil);
     }
 
+    // Panggil fungsi update utama dengan data nyata
     update(temp, hum, soil);
   },
   function(error){
+    // Error handler: koneksi gagal
     addLog('alert','🚨 Gagal konek ke Firebase: ' + error.message, ts());
     document.getElementById('vSt').textContent='🔴 OFFLINE';
     document.getElementById('upd').textContent='Koneksi gagal';
