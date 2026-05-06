@@ -97,22 +97,22 @@ header{display:flex;align-items:center;justify-content:space-between;padding:26p
 .acard.nutr.on .aico{background:rgba(181,123,255,.15);box-shadow:0 0 16px rgba(181,123,255,.25)}
 .aname{font-size:.92rem;font-weight:700;color:var(--txt);margin-bottom:3px}
 .asub{font-size:.68rem;color:var(--muted);letter-spacing:.5px}
-/* Toggle */
-.twrap{display:flex;flex-direction:column;align-items:center;gap:5px}
-.tog{position:relative;width:50px;height:27px;cursor:pointer}
-.tog input{opacity:0;width:0;height:0}
-.tsl{position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:99px;transition:.3s;border:1px solid rgba(255,255,255,.1)}
-.tsl::before{content:'';position:absolute;width:21px;height:21px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.3s;opacity:.35}
-input:checked~.tsl{background:var(--g4)}
-.acard.warn  input:checked~.tsl{background:var(--amber)}
-.acard.cool  input:checked~.tsl{background:var(--blue)}
-.acard.nutr  input:checked~.tsl{background:var(--violet)}
-input:checked~.tsl::before{transform:translateX(23px);opacity:1}
-.tlbl{font-size:.6rem;font-family:'Space Mono',monospace;color:var(--muted);letter-spacing:.5px}
+/* Status pill read-only (pengganti toggle) */
+.status-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:99px;font-size:.72rem;
+  font-family:'Space Mono',monospace;font-weight:700;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.05);color:var(--dim);
+  transition:all .4s;letter-spacing:.5px;
+}
+.acard.on     .status-pill{background:rgba(82,196,122,.15); border-color:rgba(82,196,122,.35); color:var(--g6)}
+.acard.warn.on .status-pill{background:rgba(255,173,59,.15); border-color:rgba(255,173,59,.35); color:var(--amber)}
+.acard.cool.on .status-pill{background:rgba(67,217,245,.15); border-color:rgba(67,217,245,.35); color:var(--blue)}
+.acard.nutr.on .status-pill{background:rgba(181,123,255,.15);border-color:rgba(181,123,255,.35);color:var(--violet)}
 /* Mode badge */
 .mbadge{display:inline-flex;align-items:center;gap:5px;font-size:.64rem;font-family:'Space Mono',monospace;padding:3px 9px;border-radius:6px;font-weight:700;margin-bottom:10px}
 .mba{background:rgba(212,255,78,.1);color:var(--lime);border:1px solid rgba(212,255,78,.2)}
-.mbm{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1)}
 /* Condition bar */
 .condbar{margin-top:10px}
 .condlbl{display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-bottom:4px;font-family:'Space Mono',monospace}
@@ -272,9 +272,8 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
     </div>
   </div>
   <div class="hdr-r">
-    <div class="gtoggle">
-      <button class="gbtn act" id="gAbtn" onclick="setGlobal('auto')">⚙ AUTO</button>
-      <button class="gbtn" id="gMbtn" onclick="setGlobal('manual')">✋ MANUAL</button>
+    <div class="livebadge" style="background:rgba(212,255,78,.1);border-color:rgba(212,255,78,.25);color:var(--lime)">
+      <div class="pdot" style="background:var(--lime)"></div>⚙ FULL AUTO
     </div>
     <div class="livebadge"><div class="pdot"></div>LIVE</div>
     <div class="upd" id="upd">--:--:--</div>
@@ -343,8 +342,8 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
 <!-- ACTUATOR PANEL -->
 <div class="asec fu d4">
   <div class="asec-hd">
-    <h2>Kontrol Aktuator</h2>
-    <div class="ainfo" id="ainfo">⚙ MODE AUTO · Aktuator dikendalikan otomatis berdasarkan sensor</div>
+    <h2>Status Aktuator</h2>
+    <div class="ainfo">⚙ FULL AUTO · Semua aktuator dikendalikan otomatis oleh sistem</div>
   </div>
   <div class="agrid">
 
@@ -356,15 +355,12 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
           <div class="aname">Water Pump</div>
           <div class="asub">IRIGASI TANAMAN</div>
         </div>
-        <div class="twrap">
-          <label class="tog"><input type="checkbox" id="sw-pump" onchange="togAct('pump',this.checked)"/><span class="tsl"></span></label>
-          <div class="tlbl" id="lb-pump">OFF</div>
-        </div>
+        <div class="status-pill" id="sp-pump">⭕ OFF</div>
       </div>
-      <div class="mbadge mba" id="mb-pump">⚙ AUTO</div>
+      <div class="mbadge mba">⚙ AUTO</div>
       <div class="condbar">
-        <div class="condlbl"><span>Soil Moisture</span><span id="cv-pump">72%</span></div>
-        <div class="condtrk"><div class="condfill" id="cf-pump" style="width:72%;background:linear-gradient(90deg,#1db8d6,var(--blue))"></div></div>
+        <div class="condlbl"><span>Soil Moisture</span><span id="cv-pump">—</span></div>
+        <div class="condtrk"><div class="condfill" id="cf-pump" style="width:0%;background:linear-gradient(90deg,#1db8d6,var(--blue))"></div></div>
       </div>
       <div class="statrow">
         <div class="astat"><div class="adot"></div><span id="as-pump">STANDBY</span></div>
@@ -380,12 +376,9 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
           <div class="aname">Peristaltik Pump</div>
           <div class="asub">NUTRISI TANAMAN</div>
         </div>
-        <div class="twrap">
-          <label class="tog"><input type="checkbox" id="sw-nutr" onchange="togAct('nutr',this.checked)"/><span class="tsl"></span></label>
-          <div class="tlbl" id="lb-nutr">OFF</div>
-        </div>
+        <div class="status-pill" id="sp-nutr">⭕ OFF</div>
       </div>
-      <div class="mbadge mba" id="mb-nutr">⚙ AUTO</div>
+      <div class="mbadge mba">⚙ AUTO</div>
       <div class="condbar">
         <div class="condlbl"><span>Timer Nutrisi</span><span id="cv-nutr">Interval 6h</span></div>
         <div class="condtrk"><div class="condfill" id="cf-nutr" style="width:55%;background:linear-gradient(90deg,#8b3bff,var(--violet))"></div></div>
@@ -396,7 +389,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
       </div>
     </div>
 
-    <!-- FAN 1 -->
+    <!-- FAN -->
     <div class="acard cool" id="ac-fan1">
       <div class="atop">
         <div>
@@ -404,15 +397,12 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
           <div class="aname">Fan</div>
           <div class="asub">SIRKULASI UDARA</div>
         </div>
-        <div class="twrap">
-          <label class="tog"><input type="checkbox" id="sw-fan1" onchange="togAct('fan1',this.checked)"/><span class="tsl"></span></label>
-          <div class="tlbl" id="lb-fan1">OFF</div>
-        </div>
+        <div class="status-pill" id="sp-fan1">⭕ OFF</div>
       </div>
-      <div class="mbadge mba" id="mb-fan1">⚙ AUTO</div>
+      <div class="mbadge mba">⚙ AUTO</div>
       <div class="condbar">
-        <div class="condlbl"><span>Suhu Saat Ini</span><span id="cv-fan1">28.5°C</span></div>
-        <div class="condtrk"><div class="condfill" id="cf-fan1" style="width:57%;background:linear-gradient(90deg,#1db8d6,var(--blue))"></div></div>
+        <div class="condlbl"><span>Suhu Saat Ini</span><span id="cv-fan1">—</span></div>
+        <div class="condtrk"><div class="condfill" id="cf-fan1" style="width:0%;background:linear-gradient(90deg,#1db8d6,var(--blue))"></div></div>
       </div>
       <div class="statrow">
         <div class="astat"><div class="adot"></div><span id="as-fan1">STANDBY</span></div>
@@ -430,15 +420,12 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
           <div class="aname">Peltier Cooler</div>
           <div class="asub">PENDINGIN RUANG</div>
         </div>
-        <div class="twrap">
-          <label class="tog"><input type="checkbox" id="sw-pelt" onchange="togAct('pelt',this.checked)"/><span class="tsl"></span></label>
-          <div class="tlbl" id="lb-pelt">OFF</div>
-        </div>
+        <div class="status-pill" id="sp-pelt">⭕ OFF</div>
       </div>
-      <div class="mbadge mba" id="mb-pelt">⚙ AUTO</div>
+      <div class="mbadge mba">⚙ AUTO</div>
       <div class="condbar">
-        <div class="condlbl"><span>Suhu Saat Ini</span><span id="cv-pelt">28.5°C</span></div>
-        <div class="condtrk"><div class="condfill" id="cf-pelt" style="width:57%;background:linear-gradient(90deg,#006fd6,var(--blue))"></div></div>
+        <div class="condlbl"><span>Suhu Saat Ini</span><span id="cv-pelt">—</span></div>
+        <div class="condtrk"><div class="condfill" id="cf-pelt" style="width:0%;background:linear-gradient(90deg,#006fd6,var(--blue))"></div></div>
       </div>
       <div class="statrow">
         <div class="astat"><div class="adot"></div><span id="as-pelt">STANDBY</span></div>
@@ -473,29 +460,14 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
     </div>
     <div class="sheets-body">
 
-      <!-- Tombol log manual -->
-      <button class="log-btn" id="logNowBtn" onclick="logToSheets()">
-        <span class="btn-spinner"></span>
-        <span class="btn-ico">📋</span>
-        <span id="logBtnTxt">Catat Data Sekarang ke Google Sheets</span>
-      </button>
-
-      <!-- Auto log toggle -->
+      <!-- Auto log status bar (selalu aktif) -->
       <div class="autolog-row">
         <div class="autolog-info">
-          <div class="autolog-title">Auto Log Otomatis</div>
-          <div class="autolog-sub" id="autologSub">Nonaktif · Pencatatan manual saja</div>
+          <div class="autolog-title">🔄 Auto Log Aktif</div>
+          <div class="autolog-sub" id="autologSub">Mencatat ke Sheets setiap data Firebase berubah</div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <select id="autoLogInterval" onchange="updateAutoLog()"
-            style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);
-            border-radius:8px;padding:5px 10px;font-size:.7rem;font-family:'Space Mono',monospace;cursor:pointer">
-            <option value="0">Nonaktif</option>
-            <option value="30">Setiap 30 dtk</option>
-            <option value="60">Setiap 1 menit</option>
-            <option value="300">Setiap 5 menit</option>
-            <option value="600">Setiap 10 menit</option>
-          </select>
+        <div class="status-pill" style="background:rgba(212,255,78,.1);border-color:rgba(212,255,78,.25);color:var(--lime)">
+          ⚙ OTOMATIS
         </div>
       </div>
 
@@ -604,22 +576,10 @@ function renderSheetsLog(){
     </div>`).join('');
 }
 
-// ── KIRIM KE SHEETS (fungsi utama) ──
-async function logToSheets(fromAuto=false){
-  // Guard: data sensor harus sudah ada
-  if(prevTemp === null){
-    setSheetsStatus('error','⚠ Belum ada data sensor. Tunggu Firebase terhubung.');
-    addLog('warn','📊 Log Sheets gagal: data sensor belum tersedia.',ts());
-    return;
-  }
+// ── KIRIM KE SHEETS — dipanggil otomatis setiap Firebase update ──
+async function logToSheets(){
+  if(prevTemp === null) return; // belum ada data
 
-  const btn     = document.getElementById('logNowBtn');
-  const btnTxt  = document.getElementById('logBtnTxt');
-
-  // Set loading state
-  btn.disabled  = true;
-  btn.classList.add('loading');
-  btnTxt.textContent = fromAuto ? 'Auto logging…' : 'Mengirim data…';
   setSheetsStatus('sending','📡 Mengirim data ke Google Sheets…');
 
   const tStr    = ts();
@@ -637,15 +597,13 @@ async function logToSheets(fromAuto=false){
   sheetsLogCount++;
 
   try {
-    // Gunakan no-cors fetch — Apps Script menerima GET param
     const params = new URLSearchParams(payload).toString();
     await fetch(`${SHEETS_URL}?${params}`, { method:'GET', mode:'no-cors' });
 
-    // no-cors tidak bisa baca response, anggap berhasil jika tidak throw
     sheetsOkCount++;
     sheetsLogItems.push({ ok:true, time:tStr, temp:prevTemp, hum:prevHum, soil:prevSoil });
-    setSheetsStatus('success', `✅ Berhasil dicatat · ${tStr} · Suhu ${prevTemp}°C · Tanah ${prevSoil}%`);
-    addLog('on', `📊 Data dikirim ke Sheets: ${prevTemp}°C / ${prevHum}% / ${prevSoil}%`, tStr);
+    setSheetsStatus('success', `✅ Tercatat · ${tStr} · ${prevTemp}°C / ${prevHum}% / ${prevSoil}%`);
+    addLog('on', `📊 Auto-log → Sheets: ${prevTemp}°C / ${prevHum}% / ${prevSoil}%`, tStr);
 
   } catch(err) {
     sheetsFailCount++;
@@ -654,42 +612,16 @@ async function logToSheets(fromAuto=false){
     addLog('alert', `📊 Log Sheets gagal: ${err.message}`, tStr);
   }
 
-  // Reset button
-  btn.disabled = false;
-  btn.classList.remove('loading');
-  btnTxt.textContent = 'Catat Data Sekarang ke Google Sheets';
-
   updateSheetsCounts();
   renderSheetsLog();
-}
-
-// ── AUTO LOG ──
-function updateAutoLog(){
-  const sel = document.getElementById('autoLogInterval');
-  const val = parseInt(sel.value);
-  const sub = document.getElementById('autologSub');
-
-  // Hapus timer lama
-  if(autoLogTimer){ clearInterval(autoLogTimer); autoLogTimer=null; }
-
-  if(val === 0){
-    sub.textContent = 'Nonaktif · Pencatatan manual saja';
-    addLog('info','📊 Auto log dinonaktifkan.',ts());
-    return;
-  }
-
-  // Set timer baru
-  autoLogTimer = setInterval(()=> logToSheets(true), val * 1000);
-  const label  = sel.options[sel.selectedIndex].text;
-  sub.textContent = `Aktif · ${label} · Logging otomatis berjalan`;
-  addLog('info',`📊 Auto log aktif: ${label}`,ts());
 }
 
 // Update status awal setelah Firebase dapat data
 const _origUpdate = update;
 // Patch: update sheetsStatus setelah sensor pertama kali diterima
 function patchSheetsStatus(t,h,s){
-  setSheetsStatus('','Data sensor siap · Klik tombol untuk mencatat ke Sheets');
+  setSheetsStatus('','✅ Firebase terhubung · Auto-log aktif · Data akan dicatat otomatis');
+  document.getElementById('autologSub').textContent = 'Aktif · Mencatat setiap perubahan data dari Firebase';
 }
 
 // Guard: pastikan SDK Firebase sudah berhasil dimuat
@@ -722,7 +654,7 @@ const db = firebase.database();
 const MAX=24;
 const labels=[],dT=[],dH=[],dS=[];
 const hist=[], logs=[];
-let gMode='auto', nutriTick=0;
+let nutriTick=0;
 // Simpan nilai sebelumnya untuk kalkulasi trend
 let prevTemp=null, prevHum=null, prevSoil=null;
 const act={
@@ -775,57 +707,40 @@ function swCh(m,btn){
   mc.data.datasets=mainDs[m];mc.update();
 }
 
-// ─── GLOBAL MODE ─────────────────────────────────────
-function setGlobal(m){
-  gMode=m;
-  document.getElementById('gAbtn').classList.toggle('act',m==='auto');
-  document.getElementById('gMbtn').classList.toggle('act',m==='manual');
-  document.getElementById('ainfo').textContent=
-    m==='auto'?'⚙ MODE AUTO · Aktuator dikendalikan otomatis berdasarkan kondisi sensor':'✋ MODE MANUAL · Semua aktuator dikendalikan secara manual';
-  Object.keys(act).forEach(id=>{
-    act[id].mode=m;
-    const mb=document.getElementById('mb-'+id);
-    mb.className='mbadge '+(m==='auto'?'mba':'mbm');
-    mb.textContent=m==='auto'?'⚙ AUTO':'✋ MANUAL';
-  });
-  addLog('info',`Mode global → ${m.toUpperCase()}`,ts());
-}
+// ─── SETACT — hanya update tampilan, selalu dari auto ─
+function setAct(id, val){
+  const prev = act[id].on; act[id].on = val;
+  const card = document.getElementById('ac-'+id);
+  const pill = document.getElementById('sp-'+id);
+  document.getElementById('as-'+id).textContent = val ? 'AKTIF' : 'STANDBY';
 
-// ─── TOGGLE ──────────────────────────────────────────
-function togAct(id,val){
-  if(act[id].mode==='auto') addLog('warn',`Override manual: ${id.toUpperCase()} ${val?'ON':'OFF'}`,ts());
-  setAct(id,val,false);
-}
+  if(val){ card.classList.add('on'); }
+  else   { card.classList.remove('on'); }
 
-function setAct(id,val,fromAuto){
-  const prev=act[id].on; act[id].on=val;
-  const card=document.getElementById('ac-'+id);
-  const sw=document.getElementById('sw-'+id);
-  document.getElementById('lb-'+id).textContent=val?'ON':'OFF';
-  document.getElementById('as-'+id).textContent=val?'AKTIF':'STANDBY';
-  sw.checked=val;
-  val?card.classList.add('on'):card.classList.remove('on');
-  if(prev!==val){
-    const who=fromAuto?'AUTO':'MANUAL';
-    const nm={pump:'Water Pump',nutr:'Peristaltik Pump',fan1:'Fan',pelt:'Peltier Cooler'};
-    addLog(val?'on':'off',`[${who}] ${nm[id]} → ${val?'🟢 ON':'⭕ OFF'}`,ts());
+  // Update status pill
+  if(pill){
+    pill.textContent = val ? '🟢 ON' : '⭕ OFF';
+  }
+
+  if(prev !== val){
+    const nm = {pump:'Water Pump', nutr:'Peristaltik Pump', fan1:'Fan', pelt:'Peltier Cooler'};
+    addLog(val?'on':'off', `[AUTO] ${nm[id]} → ${val?'🟢 ON':'⭕ OFF'}`, ts());
   }
 }
 
 // ─── AUTO LOGIC ──────────────────────────────────────
-function runAuto(temp,hum,soil){
-  if(gMode!=='auto') return;
-  // Water pump ON if soil < 40%
-  setAct('pump',soil<40,true);
-  // Cooling: Fan1 + Fan2 + Peltier ON if temp > 25°C
-  const cool=temp>25;
-  setAct('fan1',cool,true);
-  setAct('pelt',cool,true);
-  // Nutrisi: pulse every ~30s
+function runAuto(temp, hum, soil){
+  // Water pump ON jika soil < 40%
+  setAct('pump', soil < 40);
+  // Fan + Peltier ON jika suhu > 25°C
+  const cool = temp > 25;
+  setAct('fan1', cool);
+  setAct('pelt', cool);
+  // Nutrisi: pulse setiap ~30 detik
   nutriTick++;
-  if(nutriTick%6===0){
-    setAct('nutr',true,true);
-    setTimeout(()=>setAct('nutr',false,true),3000);
+  if(nutriTick % 6 === 0){
+    setAct('nutr', true);
+    setTimeout(()=> setAct('nutr', false), 3000);
   }
 }
 
@@ -958,6 +873,9 @@ function update(temp, hum, soil){
 
   // simpan untuk trend berikutnya
   prevTemp=temp; prevHum=hum; prevSoil=soil;
+
+  // ── Auto log ke Google Sheets setiap ada data baru ──
+  logToSheets();
 }
 
 // ─── INIT & FIREBASE LISTENER ────────────────────────
