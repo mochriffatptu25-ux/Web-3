@@ -5,10 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Mini Greenhouse · Smart Control</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-<!-- Firebase SDK (compat v10.8.1) — via jsDelivr -->
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.8.1/firebase-app-compat.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.8.1/firebase-database-compat.min.js"></script>
-<!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
@@ -116,6 +114,11 @@ header{display:flex;align-items:center;justify-content:space-between;padding:26p
 /* Mode badge */
 .mbadge{display:inline-flex;align-items:center;gap:5px;font-size:.64rem;font-family:'Space Mono',monospace;padding:3px 9px;border-radius:6px;font-weight:700;margin-bottom:10px}
 .mba{background:rgba(212,255,78,.1);color:var(--lime);border:1px solid rgba(212,255,78,.2)}
+.mbm{background:rgba(181,123,255,.1);color:var(--violet);border:1px solid rgba(181,123,255,.2)}
+/* Style khusus tombol manual */
+button.status-pill{cursor:pointer;outline:none;transition:all .2s}
+button.status-pill:hover{filter:brightness(1.25);transform:scale(1.03)}
+
 /* Condition bar */
 .condbar{margin-top:10px}
 .condlbl{display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-bottom:4px;font-family:'Space Mono',monospace}
@@ -265,7 +268,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
 <body>
 <div class="wrap">
 
-<!-- HEADER -->
 <header class="fu">
   <div class="brand">
     <div class="bico">🌿</div>
@@ -283,7 +285,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
   </div>
 </header>
 
-<!-- SENSOR CARDS -->
 <div class="sr" style="grid-template-columns:repeat(5,1fr)">
   <div class="sc2 ct2 fu d1">
     <div class="bgico">🌡️</div>
@@ -313,7 +314,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
     <div class="sbar"><div class="sbf" id="bSt" style="width:100%"></div></div>
     <div class="strend">Firebase: <span style="color:var(--g6)">Connected</span></div>
   </div>
-  <!-- SD CARD -->
   <div class="sc2 csd fu d5" id="sdCard">
     <div class="bgico">💾</div>
     <div class="slbl">Status SD Card</div>
@@ -323,9 +323,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
   </div>
 </div>
 
-<!-- CHARTS ROW -->
 <div class="chrow fu d3">
-  <!-- Main chart -->
   <div class="panel">
     <div class="ph">
       <div class="pt"><i></i>Grafik Sensor Realtime</div>
@@ -337,7 +335,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
     </div>
     <div class="cbox"><canvas id="mc"></canvas></div>
   </div>
-  <!-- Soil chart -->
   <div class="panel">
     <div class="ph">
       <div class="pt"><i></i>Grafik Kelembaban Tanah</div>
@@ -350,15 +347,13 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
   </div>
 </div>
 
-<!-- ACTUATOR PANEL -->
 <div class="asec fu d4">
   <div class="asec-hd">
     <h2>Status Aktuator</h2>
-    <div class="ainfo">⚙ FULL AUTO · Semua aktuator dikendalikan otomatis oleh sistem</div>
+    <div class="ainfo">⚙ CONTROL PANEL · Sebagian aktuator otomatis & pompa manual</div>
   </div>
   <div class="agrid">
 
-    <!-- WATER PUMP -->
     <div class="acard warn" id="ac-pump">
       <div class="atop">
         <div>
@@ -379,7 +374,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
       </div>
     </div>
 
-    <!-- PERISTALTIC PUMP -->
     <div class="acard nutr" id="ac-nutr">
       <div class="atop">
         <div>
@@ -387,20 +381,19 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
           <div class="aname">Peristaltik Pump</div>
           <div class="asub">NUTRISI TANAMAN</div>
         </div>
-        <div class="status-pill" id="sp-nutr">⭕ OFF</div>
+        <button class="status-pill" id="sp-nutr" onclick="toggleNutr()">⭕ OFF</button>
       </div>
-      <div class="mbadge mba">⚙ AUTO</div>
+      <div class="mbadge mbm">🖐 MANUAL</div>
       <div class="condbar">
-        <div class="condlbl"><span>Timer Nutrisi</span><span id="cv-nutr">Interval 6h</span></div>
-        <div class="condtrk"><div class="condfill" id="cf-nutr" style="width:55%;background:linear-gradient(90deg,#8b3bff,var(--violet))"></div></div>
+        <div class="condlbl"><span>Kontrol Pompa</span><span id="cv-nutr">Ready</span></div>
+        <div class="condtrk"><div class="condfill" id="cf-nutr" style="width:100%;background:linear-gradient(90deg,#8b3bff,var(--violet))"></div></div>
       </div>
       <div class="statrow">
         <div class="astat"><div class="adot"></div><span id="as-nutr">STANDBY</span></div>
-        <span style="font-size:.6rem;color:var(--muted);font-family:'Space Mono',monospace">Terjadwal otomatis</span>
+        <span style="font-size:.6rem;color:var(--muted);font-family:'Space Mono',monospace">Klik untuk On/Off</span>
       </div>
     </div>
 
-    <!-- FAN -->
     <div class="acard cool" id="ac-fan1">
       <div class="atop">
         <div>
@@ -423,7 +416,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
 
 
 
-    <!-- PELTIER -->
     <div class="acard cool" id="ac-pelt">
       <div class="atop">
         <div>
@@ -444,7 +436,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
       </div>
     </div>
 
-    <!-- SUMMARY -->
     <div class="panel sumpanel">
       <div>
         <div class="pt" style="margin-bottom:14px"><i></i>Ringkasan Sistem</div>
@@ -457,11 +448,7 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
       </div>
     </div>
 
-  </div><!-- /agrid -->
-</div><!-- /asec -->
-
-<!-- GOOGLE SHEETS LOGGING PANEL -->
-<div class="sheets-section fu d5">
+  </div></div><div class="sheets-section fu d5">
   <div class="sheets-panel">
     <div class="ph">
       <div class="pt"><i></i>📊 Data Logging · Google Sheets</div>
@@ -471,7 +458,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
     </div>
     <div class="sheets-body">
 
-      <!-- Auto log status bar (selalu aktif) -->
       <div class="autolog-row">
         <div class="autolog-info">
           <div class="autolog-title">🔄 Auto Log Aktif</div>
@@ -482,13 +468,11 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
         </div>
       </div>
 
-      <!-- Status strip -->
       <div class="sheets-status" id="sheetsStatus">
         <span class="sstat-ico">⏳</span>
         <span id="sheetsStatusTxt">Menunggu data sensor dari Firebase…</span>
       </div>
 
-      <!-- Stats row -->
       <div class="log-stats">
         <div class="lstat-item">
           <div class="lstat-num" id="logTotal">0</div>
@@ -504,7 +488,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
         </div>
       </div>
 
-      <!-- Log preview list -->
       <div>
         <div style="font-size:.68rem;color:var(--dim);font-family:'Space Mono',monospace;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Riwayat Pengiriman</div>
         <div class="sheets-log-wrap" id="sheetsLogList">
@@ -516,7 +499,6 @@ footer div{font-size:.7rem;color:var(--dim);font-family:'Space Mono',monospace}
   </div>
 </div>
 
-<!-- BOTTOM ROW -->
 <div class="botrow fu d5">
   <div class="panel">
     <div class="ph">
@@ -663,14 +645,14 @@ const db = firebase.database();
 
 // ─── STATE ───────────────────────────────────────────
 const MAX=24;
-const labels=[],dT=[],dH=[],dS=[];
-const hist=[], logs=[];
+const labels=[],dT=[],dH=[],dS[];
+const hist=[], logs[];
 let nutriTick=0;
 // Simpan nilai sebelumnya untuk kalkulasi trend
 let prevTemp=null, prevHum=null, prevSoil=null;
 const act={
   pump:{on:false,mode:'auto'},
-  nutr:{on:false,mode:'auto'},
+  nutr:{on:false,mode:'manual'}, // mode diubah menjadi manual
   fan1:{on:false,mode:'auto'},
   pelt:{on:false,mode:'auto'},
 };
@@ -718,7 +700,7 @@ function swCh(m,btn){
   mc.data.datasets=mainDs[m];mc.update();
 }
 
-// ─── SETACT — hanya update tampilan, selalu dari auto ─
+// ─── SETACT — hanya update tampilan ──────────────────
 function setAct(id, val){
   const prev = act[id].on; act[id].on = val;
   const card = document.getElementById('ac-'+id);
@@ -735,8 +717,26 @@ function setAct(id, val){
 
   if(prev !== val){
     const nm = {pump:'Water Pump', nutr:'Peristaltik Pump', fan1:'Fan', pelt:'Peltier Cooler'};
-    addLog(val?'on':'off', `[AUTO] ${nm[id]} → ${val?'🟢 ON':'⭕ OFF'}`, ts());
+    const modeLabel = act[id].mode === 'manual' ? '[MANUAL]' : '[AUTO]';
+    addLog(val?'on':'off', `${modeLabel} ${nm[id]} → ${val?'🟢 ON':'⭕ OFF'}`, ts());
   }
+}
+
+// ─── TOGGLE MANUAL NUTRISI (POMPA PERISTALTIK) ────────
+function toggleNutr() {
+  const newState = !act.nutr.on;
+  setAct('nutr', newState);
+  renderSummary(); // update ringkasan status di panel bawah
+
+  // Kirim perintah manual ke Firebase
+  // ESP32 Anda harus mendengarkan path "Control/PompaNutrisi" ini untuk menyalakan/mematikan fisiknya
+  db.ref('Control/PompaNutrisi').set(newState ? 1 : 0)
+    .then(() => {
+      addLog('info', '📡 Perintah MANUAL dikirim ke Firebase', ts());
+    })
+    .catch((error) => {
+      addLog('alert', '🚨 Gagal kirim perintah ke Firebase: ' + error.message, ts());
+    });
 }
 
 // ─── AUTO LOGIC ──────────────────────────────────────
@@ -747,12 +747,8 @@ function runAuto(temp, hum, soil){
   const cool = temp > 25;
   setAct('fan1', cool);
   setAct('pelt', cool);
-  // Nutrisi: pulse setiap ~30 detik
-  nutriTick++;
-  if(nutriTick % 6 === 0){
-    setAct('nutr', true);
-    setTimeout(()=> setAct('nutr', false), 3000);
-  }
+  
+  // (Logika otomatis pompa peristaltik dihapus agar murni manual lewat tombol)
 }
 
 // ─── SUMMARY ─────────────────────────────────────────
@@ -938,6 +934,18 @@ document.getElementById('vT').innerHTML=`—<span class="cu"> °C</span>`;
 document.getElementById('vH').innerHTML=`—<span class="cu"> %</span>`;
 document.getElementById('vS').innerHTML=`—<span class="cu"> %</span>`;
 document.getElementById('vSt').textContent='⏳ Menunggu…';
+
+// Listener tambahan untuk menyinkronkan status Pompa Nutrisi Manual dari Firebase
+db.ref('Control/PompaNutrisi').on('value', function(snapshot){
+  const val = snapshot.val();
+  if(val !== null){
+    const isOn = (val === 1 || val === true || String(val).toLowerCase() === 'on');
+    if(act.nutr.on !== isOn) {
+      setAct('nutr', isOn);
+      renderSummary();
+    }
+  }
+});
 
 // Listener realtime — terpanggil setiap ada perubahan data di Firebase
 db.ref('Monitoring').on('value',
